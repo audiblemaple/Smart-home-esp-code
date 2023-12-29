@@ -5,9 +5,7 @@
 //          After X time with no response try again, if still error, send error code to react GUI.
 //          * Add parsing for the message from the node to get the nodeId and the nodeName.
 //
-//       2. improve styling for root node /dev GUI.
-//
-//       3. finish implementing the getName functionality
+//       2. finish implementing the getName functionality
 
 #include "IPAddress.h"
 #include "painlessMesh.h"
@@ -46,6 +44,8 @@ AsyncWebServer server(80);
 IPAddress myIP(0, 0, 0, 0);
 IPAddress myAPIP(0, 0, 0, 0);
 String logString = "";
+
+bool awaitResponse = false;
 
 // Function Prototypes
 void receivedCallback(const uint32_t &from, const String &msg);
@@ -100,11 +100,11 @@ void setup() {
             String id = request->arg("id");
             String act = request->arg("act");
 
-            // Serial.println("Received id: " + id);
-            // addToLog("Received id: " + id);
+            Serial.println("Received id: " + id);
+            addToLog("Received id: " + id);
 
-            // Serial.println("Received act: " + act);
-            // addToLog("Received act: " + act);
+            Serial.println("Received act: " + act);
+            addToLog("Received act: " + act);
 
             if (request->hasArg("arg") && !request->arg("arg").isEmpty()) {
                 String arg = request->arg("arg");
@@ -112,34 +112,55 @@ void setup() {
                 Serial.println("added arg");
             }
 
+            if( !mesh.isConnected(id.toInt())){
+                addToLog( id + " is not connected");
+                Serial.println("Node " + id + "is not connected");
+                // request->send(406, "Node not connected");
+            }
+
             String combinedMsg = act;
+            Serial.println("Sending: " + act + " to: " + id);
 
             if (mesh.sendSingle(id.toInt(), combinedMsg))
-                addToLog("Sent: " + act + " to: " + id.toInt());
+                addToLog("Sent: " + act + " to: " + id);
         } else
             Serial.println("ID and/or Action argument not received");
             request->send(SPIFFS, "/control_panel.html", "text/html");
     });
 
     server.on("/comm", HTTP_GET, [](AsyncWebServerRequest *request) {
-        String id, act;
-        if (request->hasArg("id") && request->hasArg("act")) {
-            id = request->arg("id");
-            act = request->arg("act");
-
-            // addToLog("Received id: " + id);
-            // addToLog("Received act: " + act);
-
-            String combinedMsg = id + ":" + act;
-
-            if (mesh.sendSingle(id.toInt(), act))
-                addToLog("Sent: " + act + "to: " + id);
-
-            // add await for response from node and then send ok or error
-            request->send(200, "OK");
-        } else{
+        if (!request->hasArg("id") || !request->hasArg("act")) {
             addToLog("ID and/or Action argument not received");
-            request->send(201, "text/plain", "ID and/or Action argument not received");
+            request->send(404, "text/plain", "ID and/or Action argument not received");
+            return;
+        }
+
+        String id = request->arg("id");
+        String act = request->arg("act");
+        String token = request->arg("token");
+
+        if (token != "opriwqytopwthlsvmbnxcvmbaosigahsflkashndajzGdiulwqf") {
+            request->send(401, "Node not connected");
+            return;
+        }
+
+        addToLog("Received id: " + id);
+        addToLog("Received act: " + act);
+
+        if (!mesh.isConnected(id.toInt())) {
+            addToLog("Check if: " + id + " is not connected");
+            request->send(406, "Node not connected");
+            return;
+        }
+
+        addToLog(id + " is connected");
+
+        if (mesh.sendSingle(id.toInt(), act)) {
+            addToLog("Sent: " + act + " to: " + id);
+            request->send(200, "OK");
+        } else {
+            addToLog("Error sending command to: " + id);
+            request->send(404, "Error sending command to: " + id);
         }
     });
 
@@ -150,8 +171,6 @@ void setup() {
     });
 
     server.on("/getNodes", HTTP_GET, [](AsyncWebServerRequest *request) {
-        if (!isAdminLoggedIn)
-            request->send(401, "text/plain", "Unauthorized");
         request->send(200, "application/json", mesh.subConnectionJson());
     });
 
@@ -160,7 +179,6 @@ void setup() {
 
 void loop() {
     mesh.update();
-
     if (myIP != getlocalIP()) {
         myIP = getlocalIP();
         Serial.println("My IP is " + myIP.toString());
@@ -173,8 +191,14 @@ void loop() {
 }
 
 void receivedCallback(const uint32_t &from, const String &msg) {
-    Serial.printf("Root node: Received from %u msg=%s\n", from, msg.c_str());
-    addToLog("Root node: Received from: " + String(from) + ", " + String(msg.c_str()));
+    Serial.printf("Received from %u msg=%s\n", from, msg.c_str());
+    addToLog("Received from: " + String(from) + ", " + String(msg.c_str()));
+
+    if(msg == "success"){
+        awaitResponse = true;
+        Serial.println("got response");
+    }
+
 }
 
 IPAddress getlocalIP() {
