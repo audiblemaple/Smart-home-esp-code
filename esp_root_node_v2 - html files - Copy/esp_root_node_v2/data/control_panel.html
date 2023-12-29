@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+    <head>
+
+
+        <style>
+            body {
+                background: radial-gradient(circle at center, lightgrey, transparent);
+            }
+
+            h1 {
+                top: 3%;
+            }
+
+
+            .footer {
+                top: 95%;
+            }
+            a{
+                text-decoration: underline;
+            }
+            .text{
+                padding-left: 10px;
+            }
+            .centered-div {
+                padding: 10px 20px 35px;
+                text-align: center;
+            }
+
+
+            select:focus {
+                outline: none;
+            }
+            input, select{
+                font-size: 17px;
+                width: 50%;
+                height: 30px;
+                outline: none;
+                border: none;
+                background-color: transparent;
+                border-bottom: 2px solid black;
+                transition: border-bottom 0.3s ease-in-out, transform 0.7s ease-in-out;
+                padding-left: 5px;
+            }
+            select{
+                text-align: center;
+            }
+            canvas, #logArea{
+                border: 2px solid black;
+                border-radius: 20px;
+            }
+            input::placeholder {
+                font-size: 17px;
+                transition: all 0.5s ease-in-out;
+            }
+            input:focus, select:focus {
+                outline: none;
+                border-bottom: 2px solid #00fff7;
+            }
+            input:focus::placeholder {
+                transform: translateX(60%);
+                opacity: 0.5;
+            }
+            button {
+                font-size: 17px;
+                cursor: pointer;
+                width: 60px;
+                height: 30px;
+                outline: none;
+                border: none;
+                background-color: transparent;
+                border-bottom: 2px solid black;
+            }
+            button:hover {
+                border-bottom: 2px solid #00fff7;
+            }
+
+
+            @media (min-width: 1000px) {
+                .footer, .centered-div, h1, #logArea {
+                    position: absolute;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                }
+                .centered-div {
+                    position: absolute;
+                    left: 50%;
+                    top: 35%;
+                    height: 35%;
+                    width: 500px;
+                    border: 2px solid black;
+                    border-radius: 30px;
+                }
+                #logArea{
+                    top: 73%;
+                    padding-top: 10px;
+                    padding-left: 10px;
+                    height: 250px;
+                    width: 600px;
+                    resize: none;
+                }
+                .footer {
+                    font-size: 20px;
+                }
+
+            }
+
+            @media (min-width: 1px) and (max-width: 1000px){
+                h1, .footer, a {
+                    position: absolute;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                }
+                .centered-div {
+                    margin-top: 100px;
+                    width: 100svw;
+                    height: auto;
+                    padding: 10px;
+                    border: none;
+                }
+                #logArea{
+                    width: 100svw;
+                    height: 400px;
+                }
+                h1{
+                    font-size: 25px;
+                }
+                .footer {
+                    font-size: 15px;
+                }
+            }
+
+        </style>
+
+
+        <title>Mesh Control Panel</title>
+        <link rel="icon" type="image/x-icon" href="https://cdn-icons-png.flaticon.com/512/4395/4395294.png">
+    </head>
+    <body>
+        <h1>Mesh Control Panel</h1>
+        <form class='centered-div'>
+            Command UI
+            <br>
+            <br>
+            <br>
+            <a>NodeId:</a>
+            <br>
+            <select id="nodeDropdown" name='id'>
+            <!-- NodeId options are dynamically populated here -->
+            </select>
+            <br>
+            <br>
+            <br>
+            <a>Action:</a>
+            <br>
+            <select name='act'>
+                <option value='turn_on'>Turn On</option>
+                <option value='turn_off'>Turn Off</option>
+                <option value='get_name'>Get Name</option>
+                <option value='set_name'>Set Name</option>
+                <option value='toggle_light'>Toggle light</option>
+                <option value='blink'>blink</option>
+            </select>
+            <br>
+            <br>
+            <input type='text' placeholder='Command' name='arg' oninput="checkInput(this)" ></input><br><br><br>
+            <br>
+            <button type='submit' value='Send'>Send</button>
+        </form>
+        <br>
+        <br>
+        <br>
+        <a class="text">Log</a>
+        <br>
+        <textarea id='logArea' readonly></textarea>
+        <br>
+        <a class="text">Mesh topology</a>
+        <br>
+        <canvas id="mesh_canvas" height="400" width="400"></canvas>
+        <br>
+        <h3>Root Node:</h3>
+        <ul id="rootNodeList">
+            <!-- Root Node will be dynamically inserted here -->
+        </ul>
+
+        <h3>Connected Nodes:</h3>
+        <ul id="connectedNodeList">
+            <!-- Connected Nodes will be dynamically inserted here -->
+        </ul>
+
+
+        <div class='footer'>
+            Developed by Lior Jigalo <a href='https://github.com/audiblemaple/Smart_home.git'>github.com/audiblemaple/Smart_home.git</a>
+        </div>
+
+
+
+
+
+        <script defer>
+            var canvas, ctx, radius = 15, centerX, centerY;
+            function drawNode(x, y, text, fillColor, strokeColor) {
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
+                ctx.fillStyle = fillColor;
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = strokeColor;
+                ctx.stroke();
+
+                // Add text
+                ctx.font = "14px Arial";
+                ctx.fillStyle = 'black';
+                ctx.textAlign = 'center';
+                ctx.fillText(text, x, y + radius + 20);
+            }
+
+            function drawLine(x1, y1, x2, y2) {
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.strokeStyle = '#000000';
+                ctx.stroke();
+            }
+
+            // Existing fetchLog function
+            function fetchLog() {
+                var xhr = new XMLHttpRequest();
+                xhr.onreadystatechange = function() {
+                    if (this.readyState == 4 && this.status == 200) {
+                        document.getElementById('logArea').textContent = this.responseText;
+                    }
+                };
+                xhr.open('GET', '/getLog', true);
+                xhr.send();
+            }
+            setInterval(fetchLog, 1000);
+
+            function updateNodeDropdown(subNodes) {
+                const dropdown = document.getElementById('nodeDropdown');
+                dropdown.innerHTML = ''; // Clear existing options
+
+                subNodes.forEach(subNode => {
+                    const option = document.createElement('option');
+                    option.value = subNode.nodeId;
+                    option.textContent = subNode.nodeId; // Assuming 'nodeId' is the property
+                    dropdown.appendChild(option);
+                });
+            }
+
+            function updateNodeData(data) {
+                // Assuming 'data' contains the root node ID and connected nodes
+                const rootNodeId = data.nodeId;
+                const connectedNodes = data.subs;
+
+                // Update the root node information
+                document.getElementById('rootNodeList').innerHTML = `<li>${rootNodeId}</li>`;
+
+                // Update the connected nodes information
+                const connectedNodeList = document.getElementById('connectedNodeList');
+                connectedNodeList.innerHTML = ''; // Clear existing content
+                connectedNodes.forEach(sub => {
+                    connectedNodeList.innerHTML += `<li>${sub.nodeId}</li>`;
+                });
+
+                // Clear the canvas before drawing
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Draw the root circle
+                drawNode(centerX, centerY, 'Root', 'rgba(255,0,0,0.5)', '#000000');
+
+                // Calculate positions and draw connected nodes
+                const totalNodes = data.subs.length;
+                const angleStep = 2 * Math.PI / totalNodes;
+
+                data.subs.forEach((sub, index) => {
+                    // Calculate position
+                    let angle = angleStep * index;
+                    let childX = centerX + 100 * Math.cos(angle); // 100 is the radius from the center
+                    let childY = centerY + 100 * Math.sin(angle);
+
+                    // Draw the child node
+                    drawNode(childX, childY, sub.nodeId, 'rgba(0,0,255,0.5)', '#000000');
+
+                    // Draw a line from root to child node
+                    drawLine(centerX, centerY, childX, childY);
+                });
+            }
+
+            // Ensure the DOM is fully loaded before accessing elements
+            document.addEventListener('DOMContentLoaded', function() {
+                canvas = document.getElementById('mesh_canvas');
+                ctx = canvas.getContext('2d');
+
+                centerX = canvas.width / 2;
+                centerY = canvas.height / 2;
+
+                canvas.width = window.innerWidth - 25;
+                canvas.height = 400;
+
+                fetchNodeData();
+            });
+
+
+            function checkInput(input) {
+                if (input.value) {
+                    input.classList.add("has-text");
+                } else {
+                    input.classList.remove("has-text");
+                }
+            }
+            function fetchNodeData() {
+                fetch('http://192.168.1.115/getNodes')
+                    .then(response => response.json())
+                    .then(data => {
+                        updateNodeDropdown(data.subs);
+                        updateNodeData(data); // This line is necessary to update root and sub nodes
+                    })
+                    .catch(error => console.error('Error fetching nodes:', error));
+            }
+
+        </script>
+    </body>
+</html>

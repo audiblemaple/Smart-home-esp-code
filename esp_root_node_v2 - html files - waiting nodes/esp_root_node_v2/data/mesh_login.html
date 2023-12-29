@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="eng">
+    <head>
+        <style>
+            * { user-select: none; }
+            body {
+                background: radial-gradient(circle at center, lightgrey, transparent);
+            }
+            .footer, .centered-div, h1 {
+                position: absolute;
+                left: 50%;
+                transform: translate(-50%, -50%);
+            }
+            h1 {
+                top: 3%;
+            }
+            h2{
+                height: 30px;
+                font-size: 20px;
+            }
+            .centered-div {
+                top: 35%;
+                height: 35%;
+                width: 60%;
+                border: 2px solid black;
+                padding: 20px 30px 45px;
+                text-align: center;
+                border-radius: 30px;
+            }
+            input {
+                font-size: 17px;
+                width: 80%;
+                height: 30px;
+                outline: none;
+                border: none;
+                background-color: transparent;
+                border-bottom: 2px solid black;
+                transition: border-bottom 0.3s ease-in-out, text-align 0.7s ease-in-out;
+                padding-left: 10px;
+            }
+
+            input::placeholder {
+                font-size: 17px;
+                transition: all 0.5s ease-in-out;
+            }
+
+            input:focus {
+                outline: none;
+                border-bottom: 2px solid #00fff7;
+            }
+            input:focus::placeholder {
+                transform: translateX(60%);
+                opacity: 0.5;
+            }
+
+            .has-text{
+                border-bottom: 2px solid #00fff7;
+            }
+            button {
+                font-size: 17px;
+                cursor: pointer;
+                width: 60px;
+                height: 30px;
+                outline: none;
+                border: none;
+                background-color: transparent;
+                border-bottom: 2px solid black;
+                transition: border 0.3s ease-in-out;
+            }
+            button:hover {
+                border-bottom: 2px solid #00fff7;
+            }
+            .footer {
+                top: 95%;
+                font-size: 20px;
+            }
+        </style>
+        <title>Mesh Control panel login</title>
+        <link rel="icon" type="image/x-icon" href="https://cdn-icons-png.flaticon.com/512/4395/4395294.png">
+    </head>
+
+    <body>
+        <h1>Welcome to the Mesh control panel</h1>
+        <form class="centered-div">
+            <h2 id="label">Mesh login</h2>
+            <br>
+            <input type="text"     placeholder="Username" name="username" oninput="checkInput(this)">
+            <br><br>
+            <input type="password" placeholder="Password" name="password" oninput="checkInput(this)">
+            <br><br><br><br>
+            <button type="submit">
+                Login
+            </button>
+            <br>
+            <br>
+            <a href="http://notimplemented.com">
+                Forgot password
+            </a>
+        </form>
+        <div class="footer">
+            Developed by Lior Jigalo <a href=https://github.com/audiblemaple/Smart_home.git/>github.com/audiblemaple/Smart_home.git</a>
+        </div>
+
+
+
+    <script>
+        function checkInput(input) {
+            if (input.value) {
+                input.classList.add("has-text");
+            } else {
+                input.classList.remove("has-text");
+            }
+        }
+
+
+        const username = document.getElementById('username');
+        const usernameField =document.getElementById('username_field');
+        usernameField.addEventListener('focus', function() {
+            username.style.top = "10";
+            username.style.fontSize = "15";
+        });
+    </script>
+    </body>
+</html>
