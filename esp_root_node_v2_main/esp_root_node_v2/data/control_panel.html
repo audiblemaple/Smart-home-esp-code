@@ -1,20 +1,21 @@
 <!DOCTYPE html>
-<html>
+<html lang="EN">
     <head>
-
-
         <style>
             body {
                 background: radial-gradient(circle at center, lightgrey, transparent);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                gap: 20px;
             }
 
+            button, input, select, textarea { /* disable default mobile browser style */
+                -webkit-appearance: none;
+            }
             h1 {
                 top: 3%;
-            }
-
-
-            .footer {
-                top: 95%;
+                margin: auto;
             }
             a{
                 text-decoration: underline;
@@ -22,12 +23,6 @@
             .text{
                 padding-left: 10px;
             }
-            .centered-div {
-                padding: 10px 20px 35px;
-                text-align: center;
-            }
-
-
             select:focus {
                 outline: none;
             }
@@ -45,9 +40,10 @@
             select{
                 text-align: center;
             }
-            canvas, #logArea{
-                border: 2px solid black;
-                border-radius: 20px;
+            #logArea{
+                padding-top: 10px;
+                padding-left: 10px;
+                resize: none;
             }
             input::placeholder {
                 font-size: 17px;
@@ -60,6 +56,12 @@
             input:focus::placeholder {
                 transform: translateX(60%);
                 opacity: 0.5;
+            }
+            canvas, #logArea{
+                border: 2px solid black;
+                border-radius: 20px;
+                width: 90svw;
+                margin: auto;
             }
             button {
                 font-size: 17px;
@@ -75,63 +77,40 @@
                 border-bottom: 2px solid #00fff7;
             }
 
+            .centered-div {
+                text-align: center;
+                display: flex;
+                flex-direction: column;
+                margin: auto;
+                height: auto;
+                padding: 10px 20px 35px;
+                gap: 10px;
+            }
 
+            /*!* Desktop *!*/
             @media (min-width: 1000px) {
-                .footer, .centered-div, h1, #logArea {
-                    position: absolute;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                }
                 .centered-div {
-                    position: absolute;
-                    left: 50%;
-                    top: 35%;
-                    height: 35%;
                     width: 500px;
                     border: 2px solid black;
                     border-radius: 30px;
                 }
                 #logArea{
-                    top: 73%;
-                    padding-top: 10px;
-                    padding-left: 10px;
                     height: 250px;
-                    width: 600px;
-                    resize: none;
                 }
-                .footer {
-                    font-size: 20px;
-                }
-
             }
 
+            /*!* Mobile *!*/
             @media (min-width: 1px) and (max-width: 1000px){
-                h1, .footer, a {
-                    position: absolute;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                }
                 .centered-div {
-                    margin-top: 100px;
-                    width: 100svw;
-                    height: auto;
+                    width: 90svw;
                     padding: 10px;
                     border: none;
                 }
                 #logArea{
-                    width: 100svw;
                     height: 400px;
                 }
-                h1{
-                    font-size: 25px;
-                }
-                .footer {
-                    font-size: 15px;
-                }
             }
-
         </style>
-
 
         <title>Mesh Control Panel</title>
         <link rel="icon" type="image/x-icon" href="https://cdn-icons-png.flaticon.com/512/4395/4395294.png">
@@ -139,45 +118,34 @@
     <body>
         <h1>Mesh Control Panel</h1>
         <form class='centered-div'>
-            Command UI
-            <br>
-            <br>
-            <br>
+
             <a>NodeId:</a>
-            <br>
-            <select id="nodeDropdown" name='id'>
+            <label for="nodeDropdown"><select id="nodeDropdown" name='id'></select></label>
             <!-- NodeId options are dynamically populated here -->
-            </select>
-            <br>
-            <br>
-            <br>
+
             <a>Action:</a>
-            <br>
-            <select name='act'>
-                <option value='turn_on'>Turn On</option>
-                <option value='turn_off'>Turn Off</option>
-                <option value='get_name'>Get Name</option>
-                <option value='set_name'>Set Name</option>
-                <option value='toggle_light'>Toggle light</option>
-                <option value='blink'>blink</option>
-            </select>
-            <br>
-            <br>
-            <input type='text' placeholder='Command' name='arg' oninput="checkInput(this)" ></input><br><br><br>
-            <br>
-            <button type='submit' value='Send'>Send</button>
+            <label>
+                <select name='act'>
+                    <option value='turn_on'>Turn On</option>
+                    <option value='turn_off'>Turn Off</option>
+                    <option value='get_name'>Get Name</option>
+                    <option value='set_name'>Set Name</option>
+                    <option value='toggle_light'>Toggle light</option>
+                    <option value='blink'>blink</option>
+                </select>
+            </label>
+            <label>
+                <input type='text' placeholder='Command' name='arg' oninput="checkInput(this)" >
+            </label>
+            <label>
+                <button type='submit' value='Send'>Send</button>
+            </label>
         </form>
-        <br>
-        <br>
-        <br>
+
         <a class="text">Log</a>
-        <br>
-        <textarea id='logArea' readonly></textarea>
-        <br>
+        <label for='logArea'></label><textarea id='logArea' readonly></textarea>
         <a class="text">Mesh topology</a>
-        <br>
-        <canvas id="mesh_canvas" height="400" width="400"></canvas>
-        <br>
+        <canvas id="mesh_canvas" height="400" width="800"></canvas>
         <h3>Root Node:</h3>
         <ul id="rootNodeList">
             <!-- Root Node will be dynamically inserted here -->
@@ -188,17 +156,8 @@
             <!-- Connected Nodes will be dynamically inserted here -->
         </ul>
 
-
-        <div class='footer'>
-            Developed by Lior Jigalo <a href='https://github.com/audiblemaple/Smart_home.git'>github.com/audiblemaple/Smart_home.git</a>
-        </div>
-
-
-
-
-
         <script defer>
-            var canvas, ctx, radius = 15, centerX, centerY;
+            let canvas, ctx, radius = 15, centerX, centerY;
             function drawNode(x, y, text, fillColor, strokeColor) {
                 ctx.beginPath();
                 ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
@@ -208,13 +167,14 @@
                 ctx.strokeStyle = strokeColor;
                 ctx.stroke();
 
-                // Add text
+                // Add node ID text (might change it to node name)
                 ctx.font = "14px Arial";
                 ctx.fillStyle = 'black';
                 ctx.textAlign = 'center';
                 ctx.fillText(text, x, y + radius + 20);
             }
 
+            // Draw lines between two nodes
             function drawLine(x1, y1, x2, y2) {
                 ctx.beginPath();
                 ctx.moveTo(x1, y1);
@@ -223,13 +183,12 @@
                 ctx.stroke();
             }
 
-            // Existing fetchLog function
+            // Get the log from the root node
             function fetchLog() {
-                var xhr = new XMLHttpRequest();
+                let xhr = new XMLHttpRequest();
                 xhr.onreadystatechange = function() {
-                    if (this.readyState == 4 && this.status == 200) {
+                    if (this.readyState === 4 && this.status === 200)
                         document.getElementById('logArea').textContent = this.responseText;
-                    }
                 };
                 xhr.open('GET', '/getLog', true);
                 xhr.send();

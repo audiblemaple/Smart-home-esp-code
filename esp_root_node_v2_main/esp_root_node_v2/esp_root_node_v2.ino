@@ -41,7 +41,7 @@ const unsigned long adminTimeoutInterval = 5 * MINUTE;
 
 painlessMesh mesh;
 AsyncWebServer server(80);
-IPAddress myIP(0, 0, 0, 0);
+IPAddress myIP  (0, 0, 0, 0);
 IPAddress myAPIP(0, 0, 0, 0);
 String logString = "";
 
@@ -69,63 +69,74 @@ void setup() {
     SPIFFS.begin();
 
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-        if (request->hasArg("username") && request->hasArg("password")) {
-            String username = request->arg("username");
-            String password = request->arg("password");
-            if (username == admin_username && password == admin_username) {
-                isAdminLoggedIn = true;
-                lastAdminActivityTime = millis();
-                Serial.println("Admin logged in");
-                addToLog("Admin logged in");
-                request->redirect("/dev");
-                return;
-            } else {
-                isAdminLoggedIn = false;
-                Serial.println("Incorrect login attempt");
-                addToLog("Incorrect login attempt");
-            }
-        } else {
+        if (!request->hasArg("username") || !request->hasArg("password")) {
             Serial.println("No login credentials provided");
             addToLog("No login credentials provided");
+            request->send(SPIFFS, "/mesh_login.html", "text/html");
+            return;
         }
-        request->send(SPIFFS, "/mesh_login.html", "text/html");
+
+        String username = request->arg("username");
+        String password = request->arg("password");
+
+        if (username == admin_username && password == admin_password) {
+            isAdminLoggedIn = true;
+            lastAdminActivityTime = millis();
+            Serial.println("Admin logged in");
+            addToLog("Admin logged in");
+            request->redirect("/dev");
+        } else {
+            isAdminLoggedIn = false;
+            Serial.println("Incorrect login attempt");
+            addToLog("Incorrect login attempt");
+            request->send(SPIFFS, "/mesh_login.html", "text/html");
+        }
     });
 
     server.on("/dev", HTTP_GET, [](AsyncWebServerRequest *request) {
-        if (!isAdminLoggedIn)
+        if (!isAdminLoggedIn){
             request->redirect("/");
+            return;
+        }
             
         lastAdminActivityTime = millis();
-        if (request->hasArg("id") && request->hasArg("act")) {
-            String id = request->arg("id");
-            String act = request->arg("act");
 
-            Serial.println("Received id: " + id);
-            addToLog("Received id: " + id);
-
-            Serial.println("Received act: " + act);
-            addToLog("Received act: " + act);
-
-            if (request->hasArg("arg") && !request->arg("arg").isEmpty()) {
-                String arg = request->arg("arg");
-                act += ":" + arg;
-                Serial.println("added arg");
-            }
-
-            if( !mesh.isConnected(id.toInt())){
-                addToLog( id + " is not connected");
-                Serial.println("Node " + id + "is not connected");
-                // request->send(406, "Node not connected");
-            }
-
-            String combinedMsg = act;
-            Serial.println("Sending: " + act + " to: " + id);
-
-            if (mesh.sendSingle(id.toInt(), combinedMsg))
-                addToLog("Sent: " + act + " to: " + id);
-        } else
+        if (!request->hasArg("id") || !request->hasArg("act")) {
             Serial.println("ID and/or Action argument not received");
             request->send(SPIFFS, "/control_panel.html", "text/html");
+            return;
+        }
+
+        String id = request->arg("id");
+        String act = request->arg("act");
+
+        Serial.println("Received id: " + id);
+        addToLog("Received id: " + id);
+
+        Serial.println("Received act: " + act);
+        addToLog("Received act: " + act);
+
+        if (request->hasArg("arg") && !request->arg("arg").isEmpty()) {
+            String arg = request->arg("arg");
+            act += ":" + arg;
+            Serial.println("added arg");
+        }
+
+        if( !mesh.isConnected(id.toInt())){
+            addToLog( id + " is not connected");
+            Serial.println("Node " + id + "is not connected");
+            request->send(SPIFFS, "/control_panel.html", "text/html");
+            return;
+        }
+
+        Serial.println("Sending: " + act + " to: " + id);
+
+        if (mesh.sendSingle(id.toInt(), act))
+            Serial.println("Sent: " + act + " to: " + id);
+
+            addToLog("Sent: " + act + " to: " + id);
+        
+        request->send(SPIFFS, "/control_panel.html", "text/html");
     });
 
     server.on("/comm", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -148,7 +159,7 @@ void setup() {
         addToLog("Received act: " + act);
 
         if (!mesh.isConnected(id.toInt())) {
-            addToLog("Check if: " + id + " is not connected");
+            // addToLog("Check if: " + id + " is not connected");
             request->send(406, "Node not connected");
             return;
         }
@@ -156,7 +167,7 @@ void setup() {
         addToLog(id + " is connected");
 
         if (mesh.sendSingle(id.toInt(), act)) {
-            addToLog("Sent: " + act + " to: " + id);
+            // addToLog("Sent: " + act + " to: " + id);
             request->send(200, "OK");
         } else {
             addToLog("Error sending command to: " + id);
@@ -198,7 +209,6 @@ void receivedCallback(const uint32_t &from, const String &msg) {
         awaitResponse = true;
         Serial.println("got response");
     }
-
 }
 
 IPAddress getlocalIP() {
@@ -218,13 +228,18 @@ String formatTimestamp(unsigned long millisecs) {
     seconds %= 60;
     minutes %= 60;
 
-    char timestamp[10];
-    sprintf(timestamp, "%02lu:%02lu:%02lu ", hours, minutes, seconds);
+    char timestamp[12];
+    snprintf(timestamp, sizeof(timestamp), "%02lu:%02lu:%02lu ", hours, minutes, seconds);
     return String(timestamp);
 }
 
 void addToLog(String strToLog) {
     logString += formatTimestamp(millis()) + strToLog + "\n";
+
+    // Optional: Limit the size of logString to prevent excessive memory usage
+    // if (logString.length() > MAX_LOG_SIZE) {
+    //     logString = logString.substring(logString.length() - MAX_LOG_SIZE);
+    // }
 }
 
 

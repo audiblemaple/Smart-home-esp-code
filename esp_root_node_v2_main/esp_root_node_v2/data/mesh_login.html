@@ -2,29 +2,34 @@
 <html lang="eng">
     <head>
         <style>
-
             * {
                 user-select: none;
             }
             body {
                 background: radial-gradient(circle at center, lightgrey, transparent);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                gap: 30px;
             }
-
-            .footer, .centered-div, h1 {
-                position: absolute;
-                left: 50%;
-                transform: translate(-50%, -50%);
+            button, input, select, textarea { /* disable default mobile browser style */
+                -webkit-appearance: none;
             }
             h1 {
                 top: 3%;
+                margin: auto;
             }
-            h2{
-                height: 30px;
-                font-size: 20px;
+            .has-text { /* this keeps the underline color when there is input */
+                border-bottom: 2px solid #00fff7;
             }
             .centered-div {
-                padding: 20px 30px 45px;
                 text-align: center;
+                display: flex;
+                flex-direction: column;
+                margin: auto;
+                height: auto;
+                padding: 10px 20px 35px;
+                gap: 20px;
             }
             input {
                 font-size: 17px;
@@ -37,12 +42,10 @@
                 transition: border-bottom 0.3s ease-in-out;
                 padding-left: 10px;
             }
-
             input::placeholder {
                 font-size: 17px;
                 transition: all 0.3s ease-in-out;
             }
-
             input:focus {
                 outline: none;
                 border-bottom: 2px solid #00fff7;
@@ -51,11 +54,6 @@
                 transform: translateX(75%);
                 opacity: 0.5;
             }
-
-            .has-text{
-                border-bottom: 2px solid #00fff7;
-            }
-
             button {
                 font-size: 17px;
                 cursor: pointer;
@@ -65,45 +63,26 @@
                 border: none;
                 background-color: transparent;
                 border-bottom: 2px solid black;
-                transition: border 0.3s ease-in-out;
             }
             button:hover {
                 border-bottom: 2px solid #00fff7;
             }
-            .footer {
-                top: 95%;
+            a{
+                width: auto;
+                margin: 30px auto 0 auto;
             }
-
-
             @media (min-width: 1024px) {
                 .centered-div {
-                    top: 35%;
-                    height: 35%;
-                    width: 60%;
+                    width: 400px;
                     border: 2px solid black;
                     border-radius: 30px;
                 }
-                .footer {
-                    font-size: 20px;
-                }
             }
-
-
             @media (min-width: 1px) and (max-width: 1024px){
                 .centered-div {
-                    top: 70%;
-                    width: 100svw;
-                    height: 100svh;
-                    padding: 10px;
+                    width: 90svw;
                     border: none;
                 }
-                h1{
-                    font-size: 25px;
-                }
-                .footer {
-                    font-size: 15px;
-                }
-
             }
         </style>
 
@@ -112,34 +91,25 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
 
-
     <body>
         <h1>Mesh control panel</h1>
         <form class="centered-div">
             <h2 id="label">Mesh login</h2>
-            <br>
-            <input  placeholder="Username" type="text"     name="username" oninput="checkInput(this)">
-            <br>
-            <br>
-            <input  placeholder="Password" type="password" name="password" oninput="checkInput(this)">
-            <br>
-            <br>
-            <br>
-            <br>
-            <button type="submit">
-                Login
-            </button>
-            <br>
-            <br>
+            <label>
+                <input  placeholder="Username" type="text"     name="username" oninput="checkInput(this)">
+            </label>
+            <label>
+                <input  placeholder="Password" type="password" name="password" oninput="checkInput(this)">
+            </label>
+
+            <label>
+                <button type="submit">Login </button>
+            </label>
+
             <a href="http://notimplemented.com">
                 Forgot password
             </a>
         </form>
-        <div class="footer">
-            Developed by Lior Jigalo <a href=https://github.com/audiblemaple/Smart_home.git/></a>
-        </div>
-
-
 
         <script defer>
             function checkInput(input) {

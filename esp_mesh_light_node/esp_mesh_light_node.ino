@@ -12,16 +12,25 @@ IRGoodweatherAc ac(kIrLed);  // Create an instance of the IRGoodweatherAc class.
 #define MESH_PREFIX         "whateverYouLike"
 #define MESH_PASSWORD       "somethingSneaky"
 #define MESH_PORT           5555
-#define LED_PIN             2 //                    | this is the Built in LED on NodeMCU //// MAYBE ILL REMOVE THIS ONE... ////
 #define RELAY_PIN           4 // D2 on NodeMCU      | this is connected to the relay trigger
 #define OUTPUT_TOGGLE_PIN   5 // D1 on NodeMCU  <═╗ | this is connected to D4 as output
                               // Light switch  <══/ | the light switch breaks the connection between the two pins
 #define INPUT_TOGGLE_PIN    2 // D4 on NodeMCU  <═╝ | this is connected to D1 as input
 
-#define ROOT_NODE_ID        3042073076 //           | this is the root nodes ID (chip id)
-
 enum State {
     A, B, C, D
+};
+
+enum CommandType {
+    TURN_ON,
+    TURN_OFF,
+    TOGGLE_LIGHT,
+    TOGGLE_AC,
+    AC_TEMP_UP,
+    AC_TEMP_DOWN,
+    GET_NAME,
+    SET_NAME,
+    CMD_UNKNOWN
 };
 
 painlessMesh  mesh;
@@ -29,8 +38,8 @@ painlessMesh  mesh;
 State currentState = A;
 bool lightStateFromApp = false;
 bool previousLedState = false;
-int previousInputState = LOW;
 bool lightFlag = false;
+int previousInputState = LOW;
 String nodeName = "unset";
 
 void receivedCallback(uint32_t from, String &msg);
@@ -42,7 +51,6 @@ void nodeTimeAdjustedCallback(int32_t offset) {
 
 void setup() {
     Serial.begin(115200);
-    pinMode(LED_PIN,            OUTPUT);
     pinMode(RELAY_PIN,          OUTPUT);
     pinMode(OUTPUT_TOGGLE_PIN,  OUTPUT);
     pinMode(INPUT_TOGGLE_PIN,   INPUT );
@@ -77,57 +85,57 @@ void toggleLightFlag(bool* flag) {
 
 void loop() {
     int inputState = digitalRead(INPUT_TOGGLE_PIN);
+    bool stateChanged = false;
 
     switch (currentState) {
         case A:
-            if (lightStateFromApp != previousLedState && lightStateFromApp == true) {
+            if (lightStateFromApp != previousLedState && lightStateFromApp) {
                 currentState = B;
-                toggleLightFlag(&lightFlag);
-                printState(currentState, lightStateFromApp, inputState);
+                stateChanged = true;
             } else if (inputState != previousInputState && inputState == HIGH) {
                 currentState = C;
-                toggleLightFlag(&lightFlag);
-                printState(currentState, lightStateFromApp, inputState);
+                stateChanged = true;
             }
             break;
+
         case B:
-            if (lightStateFromApp != previousLedState && lightStateFromApp == false) {
+            if (lightStateFromApp != previousLedState && !lightStateFromApp) {
                 currentState = A;
-                toggleLightFlag(&lightFlag);
-                printState(currentState, lightStateFromApp, inputState);
+                stateChanged = true;
             } else if (inputState != previousInputState && inputState == HIGH) {
                 currentState = D;
-                toggleLightFlag(&lightFlag);
-                printState(currentState, lightStateFromApp, inputState);
+                stateChanged = true;
             }
             break;
+
         case C:
             if (inputState != previousInputState && inputState == LOW) {
                 currentState = A;
-                toggleLightFlag(&lightFlag);
-                printState(currentState, lightStateFromApp, inputState);
-            } else if (lightStateFromApp != previousLedState && lightStateFromApp == true) {
+                stateChanged = true;
+            } else if (lightStateFromApp != previousLedState && lightStateFromApp) {
                 currentState = D;
-                toggleLightFlag(&lightFlag);
-                printState(currentState, lightStateFromApp, inputState);
+                stateChanged = true;
             }
             break;
+
         case D:
-            if (lightStateFromApp != previousLedState && lightStateFromApp == false) {
+            if (lightStateFromApp != previousLedState && !lightStateFromApp) {
                 currentState = C;
-                toggleLightFlag(&lightFlag);
-                printState(currentState, lightStateFromApp, inputState);
+                stateChanged = true;
             } else if (inputState != previousInputState && inputState == LOW) {
                 currentState = B;
-                toggleLightFlag(&lightFlag);
-                printState(currentState, lightStateFromApp, inputState);
+                stateChanged = true;
             }
             break;
+    }
+
+    if (stateChanged) {
+        toggleLightFlag(&lightFlag);
+        printState(currentState, lightStateFromApp, inputState);
     }
     previousLedState = lightStateFromApp;
     previousInputState = inputState;
 
-    digitalWrite(LED_PIN, lightFlag ? LOW : HIGH); // <-- disabled the built in led toggle
     digitalWrite(RELAY_PIN, lightFlag ? HIGH : LOW);
 
     mesh.update();
@@ -139,7 +147,7 @@ void initFS(){
         return;
     }
 
-    // Check if the file exists, if not, create it
+    // Check if devName.txt exists, if not, create it
     if (!SPIFFS.exists("/devName.txt")) {
         File file = SPIFFS.open("/devName.txt", "w");
         if (file) {
@@ -149,7 +157,7 @@ void initFS(){
             Serial.println("Failed to create file");
     }
 
-    // Read the existing node name from file
+    // Read the node name from devName
     File file = SPIFFS.open("/devName.txt", "r");
     if (file) {
         nodeName = file.readStringUntil('\n');
@@ -168,85 +176,160 @@ void setNodeName(const String& msg) {
     if (file) {
         file.println(nodeName);
         file.close();
-    } else {
+        Serial.println("Node name saved to memory");
+    } else
         Serial.println("Failed to open file for writing");
-    }
 }
 
+// Toggle AC power on and off
 void toggleAC() {
-  if (ac.getPower())
-    ac.off();
-  else
-    ac.on();
-  ac.send();
+    ac.getPower() ? ac.off() : ac.on();
+    ac.send();
 }
 
-// Function to increase the temperature
+// Increase the temperature
 void tempUp() {
-  uint8_t temp = ac.getTemp();
-  if (temp < 31) {
-    ac.setTemp(temp + 1);
-  }
-  ac.send();
+    uint8_t temp = ac.getTemp();
+    if (temp < 31)
+        ac.setTemp(temp + 1);
+    ac.send();
 }
 
-// Function to decrease the temperature
+// Decrease the temperature
 void tempDown() {
   uint8_t temp = ac.getTemp();
-  if (temp > 16) {
+  if (temp > 16)
     ac.setTemp(temp - 1);
-  }
   ac.send();
+}
+
+CommandType getCommandType(const String& cmd) {
+    if (cmd.equals("turn_on"))       return TURN_ON;
+    if (cmd.equals("turn_off"))      return TURN_OFF;
+    if (cmd.equals("toggle_light"))  return TOGGLE_LIGHT;
+    if (cmd.equals("toggle_ac"))     return TOGGLE_AC;
+    if (cmd.equals("AC_temp_up"))    return AC_TEMP_UP;
+    if (cmd.equals("AC_temp_down"))  return AC_TEMP_DOWN;
+    if (cmd.equals("get_name"))      return GET_NAME;
+    if (cmd.startsWith("set_name:")) return SET_NAME;
+    return CMD_UNKNOWN;
 }
 
 void receivedCallback(uint32_t from, String &msg) {
     String response = "fail";
-    Serial.println("Received a message");
+    Serial.println("Received " + msg );
 
-    if (msg.equals("turn_on")) {
-        Serial.println("Received 'turn on' command.");
-        lightStateFromApp = true;
-        response = "success";
+    switch (getCommandType(msg)) {
+        case TURN_ON:
+            lightStateFromApp = true;
+            response = "success";
+            break;
 
-    } else if (msg.equals("turn_off")) {
-        Serial.println("Received 'turn off' command.");
-        lightStateFromApp = false;
-        response = "success";
+        case TURN_OFF:
+            lightStateFromApp = false;
+            response = "success";
+            break;
 
-    } else if (msg.equals("toggle_light")) {
-        Serial.println("Received 'toggle_light' command.");
-        toggleLightFlag(&lightStateFromApp);
-        response = "success";
+        case TOGGLE_LIGHT:
+            toggleLightFlag(&lightStateFromApp);
+            response = "success";
+            break;
 
-    } else if (msg.equals("toggle_ac")) {
-        Serial.println("Received 'toggle_ac' command.");
-        toggleAC();
-        response = "success";
+        case TOGGLE_AC:
+            lightStateFromApp = false;
+            response = "success";
+            break;
 
-    } else if (msg.equals("AC_temp_up")) {
-        Serial.println("Received 'toggle_ac' command.");
-        tempUp();
-        response = "success";
+        case AC_TEMP_UP:
+            tempUp();
+            response = "success";
+            break;
 
-    } else if (msg.equals("AC_temp_down")) {
-        Serial.println("Received 'toggle_ac' command.");
-        tempDown();
-        response = "success";
+        case AC_TEMP_DOWN:
+            tempDown();
+            response = "success";
+            break;
 
-    } else if (msg.equals("get_name")) {
-        Serial.println("Received 'get_name' command.");
-        response = "nodeName:" + nodeName;
+        case GET_NAME:
+            Serial.println("Received 'get_name' command.");
+            response = nodeName;
+            Serial.println("Node name: " + response);
+            Serial.println("Response length: " + String(response.length()));
+            break;
 
-    } else if (msg.startsWith("set_name:")) {
-        setNodeName(msg);
-        response = "Node name is set to: " + nodeName;
+        case SET_NAME:
+            setNodeName(msg);
+            response = "Node name is set to: " + nodeName;
+            break;
 
-    } else{
-        Serial.printf("Unknown message: %s\n", msg.c_str());
-        response = "Unknown message...";
+        case CMD_UNKNOWN:
+        default:
+            response = "Unknown message...";
+            break;
     }
 
-    if (mesh.sendSingle(from, response))
+    if (mesh.sendSingle(from, response)) {
         Serial.println("Response sent: " + response);
+    } else {
+        Serial.println("Failed to send response: " + response);
+    }
 }
+
+
+
+
+
+
+
+
+// void receivedCallback(uint32_t from, String &msg) {
+//     String response = "fail";
+//     Serial.println("Received a message");
+
+//     if (msg.equals("turn_on")) {
+//         Serial.println("Received 'turn on' command.");
+//         lightStateFromApp = true;
+//         response = "success";
+
+//     } else if (msg.equals("turn_off")) {
+//         Serial.println("Received 'turn off' command.");
+//         lightStateFromApp = false;
+//         response = "success";
+
+//     } else if (msg.equals("toggle_light")) {
+//         Serial.println("Received 'toggle_light' command.");
+//         toggleLightFlag(&lightStateFromApp);
+//         response = "success";
+
+//     } else if (msg.equals("toggle_ac")) {
+//         Serial.println("Received 'toggle_ac' command.");
+//         toggleAC();
+//         response = "success";
+
+//     } else if (msg.equals("AC_temp_up")) {
+//         Serial.println("Received 'toggle_ac' command.");
+//         tempUp();
+//         response = "success";
+
+//     } else if (msg.equals("AC_temp_down")) {
+//         Serial.println("Received 'toggle_ac' command.");
+//         tempDown();
+//         response = "success";
+
+//     } else if (msg.equals("get_name")) {
+//         Serial.println("Received 'get_name' command.");
+//         response = "nodeName:" + nodeName;
+
+//     } else if (msg.startsWith("set_name:")) {
+//         setNodeName(msg);
+//         response = "Node name is set to: " + nodeName;
+
+//     } else{
+//         Serial.printf("Unknown message: %s\n", msg.c_str());
+//         response = "Unknown message...";
+//     }
+
+//     if (mesh.sendSingle(from, response))
+//         Serial.println("Response sent: " + response);
+// }
 

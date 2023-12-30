@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="830affeb-77cb-42a7-960b-c1ce43691fb0" name="Changes" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../../.." />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7
+}</component>
+  <component name="ProjectId" id="2ZPdhnNQOqzArnwHOPOfsMf43Uz" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "git-widget-placeholder": "main",
+    "ignore.virus.scanning.warn.message": "true",
+    "last_opened_file_path": "C:/Users/Lior/Documents/Arduino/Smart-home-esp-code/esp_root_node_v2 - html files/esp_root_node_v2/data",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="830affeb-77cb-42a7-960b-c1ce43691fb0" name="Changes" comment="" />
+      <created>1702327769963</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1702327769963</updated>
+      <workItem from="1702327771536" duration="3547000" />
+      <workItem from="1702399073961" duration="10695000" />
+      <workItem from="1702414106509" duration="32000" />
+      <workItem from="1702475491928" duration="1004000" />
+      <workItem from="1702481479905" duration="4702000" />
+      <workItem from="1702587222024" duration="20000" />
+      <workItem from="1702587607217" duration="4000" />
+      <workItem from="1702588917857" duration="15000" />
+      <workItem from="1702589444475" duration="745000" />
+      <workItem from="1702626451540" duration="21000" />
+      <workItem from="1702627759348" duration="735000" />
+      <workItem from="1703602305977" duration="994000" />
+      <workItem from="1703603518155" duration="888000" />
+      <workItem from="1703604430585" duration="38000" />
+      <workItem from="1703867286183" duration="3854000" />
+      <workItem from="1703871953063" duration="674000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>
