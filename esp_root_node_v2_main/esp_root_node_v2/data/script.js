@@ -1,4 +1,15 @@
-let canvas, ctx, radius = 15, centerX, centerY;
+
+// global variables
+let canvas, ctx, radius = 20, centerX, centerY;
+
+/**
+ * Draws a node (circle) with text.
+ * @param {number} x - The x-coordinate of the node's center.
+ * @param {number} y - The y-coordinate of the node's center.
+ * @param {string} text - The text to display on the node.
+ * @param {string} fillColor - The fill color for the node.
+ * @param {string} strokeColor - The stroke color for the node's border.
+ */
 function drawNode(x, y, text, fillColor, strokeColor) {
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
@@ -15,7 +26,13 @@ function drawNode(x, y, text, fillColor, strokeColor) {
     ctx.fillText(text, x, y + radius + 20);
 }
 
-// Draw lines between two nodes
+/**
+ * Draws a line between two points.
+ * @param {number} x1 - The x-coordinate of the starting point.
+ * @param {number} y1 - The y-coordinate of the starting point.
+ * @param {number} x2 - The x-coordinate of the ending point.
+ * @param {number} y2 - The y-coordinate of the ending point.
+ */
 function drawLine(x1, y1, x2, y2) {
     ctx.beginPath();
     ctx.moveTo(x1, y1);
@@ -24,6 +41,10 @@ function drawLine(x1, y1, x2, y2) {
     ctx.stroke();
 }
 
+/**
+ * Updates the node dropdown with given sub-nodes.
+ * @param {Array} subNodes - An array of sub-nodes to populate in the dropdown.
+ */
 function updateNodeDropdown(subNodes) {
     const dropdown = document.getElementById('nodeDropdown');
     dropdown.innerHTML = ''; // Clear existing options
@@ -36,6 +57,9 @@ function updateNodeDropdown(subNodes) {
     });
 }
 
+/**
+ * Submits a request to the server based on selected node and action.
+ */
 function submit(){
     const protocol = window.location.protocol;
     const hostname = window.location.hostname;
@@ -45,6 +69,10 @@ function submit(){
         .catch(error => console.error('Error sending command:', error));
 }
 
+/**
+ * Updates the canvas with node data, drawing nodes and lines.
+ * @param {Object} data - Data containing node information.
+ */
 function updateNodeData(data) {
     // Assuming 'data' contains the root node ID and connected nodes
     const rootNodeId = data.nodeId;
@@ -101,7 +129,10 @@ document.addEventListener('DOMContentLoaded', function() {
     fetchNodeData();
 });
 
-
+/**
+ * Checks the input field and adds a class if it contains text.
+ * @param {Element} input - The input element to check.
+ */
 function checkInput(input) {
     if (input.value) {
         input.classList.add("has-text");
@@ -109,6 +140,10 @@ function checkInput(input) {
         input.classList.remove("has-text");
     }
 }
+
+/**
+ * Fetches node data from the mesh root node and updates the UI.
+ */
 function fetchNodeData() {
     const protocol = window.location.protocol;
     const hostname = window.location.hostname;
@@ -133,14 +168,15 @@ var websocket;
 // Init web socket when the page loads
 window.addEventListener('load', onload);
 
+
+// WebSocket related functions
 function onload(event) {
     initWebSocket();
 }
 
-function getLog(){
-    websocket.send("getLog");
-}
-
+/**
+ * Initializes the WebSocket connection and sets up event handlers.
+ */
 function initWebSocket() {
     console.log('Trying to open a WebSocket connection…');
     websocket = new WebSocket(gateway);
@@ -152,15 +188,19 @@ function initWebSocket() {
 // When websocket is established, call the getLog() function
 function onOpen(event) {
     console.log('Connection opened');
-    getLog();
 }
+
 
 function onClose(event) {
     console.log('Connection closed');
     setTimeout(initWebSocket, 2000);
 }
 
-function formatDateTime() {
+/**
+ * Formats the current date and time into a specific string format.
+ * @returns {string} The formatted date and time as 'dd/mm/yy hh:mm:ss'.
+ */
+function getTimeStamp() {
     let now = new Date();
 
     let seconds = String(now.getSeconds()).padStart(2, '0');
@@ -173,14 +213,21 @@ function formatDateTime() {
     return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
 }
 
+/**
+ * Scrolls the textarea element with id 'logArea' to its bottom.
+ * This is typically used to ensure the latest logged information is visible.
+ */
 function scrollToBottom() {
     let textarea = document.getElementById('logArea');
     textarea.scrollTop = textarea.scrollHeight;
 }
 
-// Function that receives the message from the ESP32 with the readings
+/**
+ * Handles incoming WebSocket messages, appending them to the 'logArea' with a timestamp.
+ * @param {Object} event - The event object containing the WebSocket message data.
+ */
 function onMessage(event) {
-    document.getElementById('logArea').textContent += `${formatDateTime()} -> ${event.data}\n`;
+    document.getElementById('logArea').textContent += `${getTimeStamp()} -> ${event.data}\n`;
     scrollToBottom();
 }
 

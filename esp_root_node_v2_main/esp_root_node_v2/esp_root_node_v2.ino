@@ -1,13 +1,15 @@
 // TODO:
-//       1. Add a response queue
+//      1. Add a response queue
 //          when i send a command i add to the queue and when i receive a success status from the node id in the queue,
 //          remove it and update the react GUI.
 //          After X time with no response try again, if still error, send error code to react GUI.
 //          * Add parsing for the message from the node to get the nodeId and the nodeName.
 //
-//       2. finish implementing the getName functionality
+//      2. Finish implementing the getName functionality
 //
-//       3. fix the log functionality using websocket
+//      3. Logging is fixed but maybe i want to send the log to the server for storage and then fetch it when the /dev is open.
+//
+//      4. Add blind commands to dropdown in html files.
 
 #include "IPAddress.h"
 #include "painlessMesh.h"
@@ -59,7 +61,6 @@ String logString = "";
 void receivedCallback(const uint32_t &from, const String &msg);
 void newConnectionCallback(uint32_t nodeId);
 void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
-// void handleWebSocketMessage(void *arg, uint8_t *data, size_t len);
 void notifyClients(String sensorReadings);
 void initWebSocket();
 IPAddress getlocalIP();
@@ -69,17 +70,6 @@ IPAddress getlocalIP();
 void notifyClients(String sensorReadings) {
     ws.textAll(sensorReadings);
 }
-
-// void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
-//     AwsFrameInfo *info = (AwsFrameInfo*)arg;
-//     if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
-//         String message = "Nothing to do here yet....";
-//         Serial.print(message);
-//         notifyClients(message);
-//     }
-// }
-
-
 
 void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
     switch (type) {
