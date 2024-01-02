@@ -6,6 +6,8 @@
 //          * Add parsing for the message from the node to get the nodeId and the nodeName.
 //
 //       2. finish implementing the getName functionality
+//
+//       3. fix the log functionality using websocket
 
 #include "IPAddress.h"
 #include "painlessMesh.h"
@@ -39,19 +41,79 @@ bool isAdminLoggedIn = false;
 unsigned long lastAdminActivityTime = 0;
 const unsigned long adminTimeoutInterval = 5 * MINUTE;
 
+// Mesh object
 painlessMesh mesh;
+
+// Declare server and websocket
 AsyncWebServer server(80);
+AsyncWebSocket ws("/ws");
+
+// Declare IP addresses
 IPAddress myIP  (0, 0, 0, 0);
 IPAddress myAPIP(0, 0, 0, 0);
-String logString = "";
 
-bool awaitResponse = false;
+// String for the log functionality
+String logString = "";
 
 // Function Prototypes
 void receivedCallback(const uint32_t &from, const String &msg);
 void newConnectionCallback(uint32_t nodeId);
+void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
+// void handleWebSocketMessage(void *arg, uint8_t *data, size_t len);
+void notifyClients(String sensorReadings);
+void initWebSocket();
 IPAddress getlocalIP();
 
+
+
+void notifyClients(String sensorReadings) {
+    ws.textAll(sensorReadings);
+}
+
+// void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
+//     AwsFrameInfo *info = (AwsFrameInfo*)arg;
+//     if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
+//         String message = "Nothing to do here yet....";
+//         Serial.print(message);
+//         notifyClients(message);
+//     }
+// }
+
+
+
+void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
+    switch (type) {
+        case WS_EVT_CONNECT:
+            Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
+            break;
+        case WS_EVT_DISCONNECT:
+            Serial.printf("WebSocket client #%u disconnected\n", client->id());
+            break;
+        // case WS_EVT_DATA:
+        //     handleWebSocketMessage(arg, data, len);
+        //     break;
+        case WS_EVT_PONG:
+        case WS_EVT_ERROR:
+            break;
+    }
+}
+
+
+void initWebSocket() {
+  ws.onEvent(onEvent);
+  server.addHandler(&ws);
+}
+
+
+// Setup:
+//      Serial output
+//      Mesh debug output levels
+//      Mesh callback functions
+//      Mesh wifi connection and AP connection
+//      Mesh set this device as the meshe's root device and declare it in the mesh
+//      Set up Server routes
+//      Initialize file system
+//      Initialize websocket
 void setup() {
     Serial.begin(115200);
     mesh.setDebugMsgTypes(ERROR | MESH_STATUS);
@@ -62,6 +124,7 @@ void setup() {
     mesh.setHostname(HOSTNAME);
     mesh.setRoot(true);
     mesh.setContainsRoot(true);
+    initWebSocket();
 
     myAPIP = IPAddress(mesh.getAPIP());
     Serial.println("My AP IP is " + myAPIP.toString());
@@ -70,7 +133,6 @@ void setup() {
 
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
         if (!request->hasArg("username") || !request->hasArg("password")) {
-            Serial.println("No login credentials provided");
             addToLog("No login credentials provided");
             request->send(SPIFFS, "/mesh_login.html", "text/html");
             return;
@@ -82,12 +144,10 @@ void setup() {
         if (username == admin_username && password == admin_password) {
             isAdminLoggedIn = true;
             lastAdminActivityTime = millis();
-            Serial.println("Admin logged in");
             addToLog("Admin logged in");
             request->redirect("/dev");
         } else {
             isAdminLoggedIn = false;
-            Serial.println("Incorrect login attempt");
             addToLog("Incorrect login attempt");
             request->send(SPIFFS, "/mesh_login.html", "text/html");
         }
@@ -96,9 +156,9 @@ void setup() {
     server.on("/dev", HTTP_GET, [](AsyncWebServerRequest *request) {
         if (!isAdminLoggedIn){
             request->redirect("/");
+            addToLog("Admin logged in");
             return;
         }
-            
         lastAdminActivityTime = millis();
 
         if (!request->hasArg("id") || !request->hasArg("act")) {
@@ -110,10 +170,7 @@ void setup() {
         String id = request->arg("id");
         String act = request->arg("act");
 
-        Serial.println("Received id: " + id);
         addToLog("Received id: " + id);
-
-        Serial.println("Received act: " + act);
         addToLog("Received act: " + act);
 
         if (request->hasArg("arg") && !request->arg("arg").isEmpty()) {
@@ -123,8 +180,7 @@ void setup() {
         }
 
         if( !mesh.isConnected(id.toInt())){
-            addToLog( id + " is not connected");
-            Serial.println("Node " + id + "is not connected");
+            addToLog( "Node " + id + "is not connected");
             request->send(SPIFFS, "/control_panel.html", "text/html");
             return;
         }
@@ -132,8 +188,6 @@ void setup() {
         Serial.println("Sending: " + act + " to: " + id);
 
         if (mesh.sendSingle(id.toInt(), act))
-            Serial.println("Sent: " + act + " to: " + id);
-
             addToLog("Sent: " + act + " to: " + id);
         
         request->send(SPIFFS, "/control_panel.html", "text/html");
@@ -159,7 +213,7 @@ void setup() {
         addToLog("Received act: " + act);
 
         if (!mesh.isConnected(id.toInt())) {
-            // addToLog("Check if: " + id + " is not connected");
+            addToLog("Check if: " + id + " is not connected");
             request->send(406, "Node not connected");
             return;
         }
@@ -167,7 +221,7 @@ void setup() {
         addToLog(id + " is connected");
 
         if (mesh.sendSingle(id.toInt(), act)) {
-            // addToLog("Sent: " + act + " to: " + id);
+            addToLog("Sent: " + act + " to: " + id);
             request->send(200, "OK");
         } else {
             addToLog("Error sending command to: " + id);
@@ -185,6 +239,8 @@ void setup() {
         request->send(200, "application/json", mesh.subConnectionJson());
     });
 
+    server.serveStatic("/", SPIFFS, "/");
+
     server.begin();
 }
 
@@ -196,19 +252,14 @@ void loop() {
     }
     if (isAdminLoggedIn && millis() - lastAdminActivityTime > adminTimeoutInterval) {
         isAdminLoggedIn = false;
-        Serial.println("Admin session timed out");
+        
         addToLog("Admin session timed out");
     }
+    ws.cleanupClients();
 }
 
 void receivedCallback(const uint32_t &from, const String &msg) {
-    Serial.printf("Received from %u msg=%s\n", from, msg.c_str());
     addToLog("Received from: " + String(from) + ", " + String(msg.c_str()));
-
-    if(msg == "success"){
-        awaitResponse = true;
-        Serial.println("got response");
-    }
 }
 
 IPAddress getlocalIP() {
@@ -216,31 +267,52 @@ IPAddress getlocalIP() {
 }
 
 void newConnectionCallback(uint32_t nodeId) {
-    Serial.printf("New node Connection, nodeId: %u\n", nodeId);
     addToLog("New node Connection, nodeId: " + nodeId);
 }
 
-String formatTimestamp(unsigned long millisecs) {
-    unsigned long seconds = millisecs / 1000;
-    unsigned long minutes = seconds / 60;
-    unsigned long hours = minutes / 60;
-
-    seconds %= 60;
-    minutes %= 60;
-
-    char timestamp[12];
-    snprintf(timestamp, sizeof(timestamp), "%02lu:%02lu:%02lu ", hours, minutes, seconds);
-    return String(timestamp);
-}
-
 void addToLog(String strToLog) {
-    logString += formatTimestamp(millis()) + strToLog + "\n";
-
-    // Optional: Limit the size of logString to prevent excessive memory usage
-    // if (logString.length() > MAX_LOG_SIZE) {
-    //     logString = logString.substring(logString.length() - MAX_LOG_SIZE);
-    // }
+    // logString += formatTimestamp(millis()) + strToLog + "\n";
+    Serial.println(strToLog);
+    if (isAdminLoggedIn) {
+        // notifyClients(strToLog + "\n");
+        notifyClients(strToLog);
+    }
 }
+
+// void writeToLog(const String& message) {
+//     File logFile = SPIFFS.open("/log.txt", "a");
+//     if (logFile) {
+//         logFile.println(message);
+//         logFile.close();
+//         Serial.println("Log updated");
+//     } else {
+//         Serial.println("Failed to open log file for appending");
+//     }
+// }
+
+
+// FILE sendFileOverWebSocket(const String& path) {
+//     if (SPIFFS.exists(path)) {
+//         File file = SPIFFS.open(path, "r");
+//         if (!file) {
+//             Serial.println("Failed to open file for reading");
+//             return;
+//         }
+
+//         // Read the file and send it in chunks
+//         // const size_t bufferSize = 1024;  // Adjust the buffer size based on available memory
+//         // char buffer[bufferSize];
+//         // while (file.available()) {
+//         //     size_t len = file.readBytes(buffer, bufferSize);
+//         //     ws.textAll(buffer, len);  // Send a chunk of the file
+//         // }
+
+//         file.close();
+//         return file;
+//     } else {
+//         Serial.println("File does not exist");
+//     }
+// }
 
 
 
