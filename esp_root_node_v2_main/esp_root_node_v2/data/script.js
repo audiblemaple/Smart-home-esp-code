@@ -24,18 +24,6 @@ function drawLine(x1, y1, x2, y2) {
     ctx.stroke();
 }
 
-// Get the log from the root node
-// function fetchLog() {
-//     let xhr = new XMLHttpRequest();
-//     xhr.onreadystatechange = function() {
-//         if (this.readyState === 4 && this.status === 200)
-//             document.getElementById('logArea').textContent = this.responseText;
-//     };
-//     xhr.open('GET', '/getLog', true);
-//     xhr.send();
-// }
-// setInterval(fetchLog, 1000);
-
 function updateNodeDropdown(subNodes) {
     const dropdown = document.getElementById('nodeDropdown');
     dropdown.innerHTML = ''; // Clear existing options
@@ -65,20 +53,21 @@ function updateNodeData(data) {
     // Update the root node information
     document.getElementById('rootNodeList').innerHTML = `<li>${rootNodeId}</li>`;
 
+    // Clear the canvas before drawing
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw the root circle
+    drawNode(centerX, centerY, 'Root', 'rgba(255,0,0,0.5)', '#000000');
+
     if (!data.subs)
         return;
+
     // Update the connected nodes information
     const connectedNodeList = document.getElementById('connectedNodeList');
     connectedNodeList.innerHTML = ''; // Clear existing content
     connectedNodes.forEach(sub => {
         connectedNodeList.innerHTML += `<li>${sub.nodeId}</li>`;
     });
-
-    // Clear the canvas before drawing
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Draw the root circle
-    drawNode(centerX, centerY, 'Root', 'rgba(255,0,0,0.5)', '#000000');
 
     // Calculate positions and draw connected nodes
     const totalNodes = data.subs.length;
@@ -184,9 +173,15 @@ function formatDateTime() {
     return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
 }
 
+function scrollToBottom() {
+    let textarea = document.getElementById('logArea');
+    textarea.scrollTop = textarea.scrollHeight;
+}
+
 // Function that receives the message from the ESP32 with the readings
 function onMessage(event) {
     document.getElementById('logArea').textContent += `${formatDateTime()} -> ${event.data}\n`;
+    scrollToBottom();
 }
 
 
